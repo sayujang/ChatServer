@@ -1,0 +1,7 @@
+Socket is a interface between the application layer and transport layer.
+Socket are endpoints for communication between programs/processes in our computers connected through networks.
+a socket is identified as ip address +  port number
+in server-client setting both devices have their respect sockets.
+theres a stream-socket(tcp) and datagram-socket(udp)
+in java sockets are implemented as objects
+
