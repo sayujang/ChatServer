@@ -70,3 +70,6 @@ ObjectOutputStream writes header bytes on construction, but those bytes may rema
 | Output → Input | Input → Output | Irrelevant | ✅ Yes      | One sends, other reads    |
 | Input → Output | Output → Input | Irrelevant | ✅ Yes      | One sends, other reads    |
 | Input → Output | Input → Output | Irrelevant | ❌ Deadlock | Both wait to read         |
+
+if a query returns data like select or insert with returning then use-->executeQuery()
+if a query doesn't return data like insert update delete use -->executeUpdate();
