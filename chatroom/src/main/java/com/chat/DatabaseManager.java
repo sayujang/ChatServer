@@ -7,9 +7,12 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.sql.Types;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+
+import javax.naming.spi.DirStateFactory.Result;
 
 public class DatabaseManager
 {
@@ -114,6 +117,8 @@ public class DatabaseManager
             Collections.reverse(messages);
             return messages;
         }
+    
+    //get chatmessages relevant to a specific user:
     public List<ChatHistoryMessage> getUserRelevantMessages(int userId, int limit) throws SQLException {
         List<ChatHistoryMessage> messages = new ArrayList<>();
         String query = "SELECT m.message_id, u1.username AS sender, u2.username AS receiver, " +
@@ -142,10 +147,150 @@ public class DatabaseManager
                 messages.add(msg);
             }
         }
+
         
         java.util.Collections.reverse(messages);
         return messages;
     }
+    public List<ChatHistoryMessage> getMessagesSinceLastLogin(int userId) throws SQLException
+    {
+        List<ChatHistoryMessage> messages=new ArrayList<>();
+        String lastDisconnectQuery="select disconnected_at from active_sessions where "+
+                                    "user_id=? and disconnected_at is not null " +
+                                    "order by disconnected_at desc limit 1";
+        Timestamp lastDisconnect=null;
+        try(PreparedStatement prst=connection.prepareStatement(lastDisconnectQuery))
+        {
+            prst.setInt(1,userId);
+            ResultSet rs=prst.executeQuery();
+            if(rs.next())
+            {
+                lastDisconnect=rs.getTimestamp("disconnected_at");
+            }
+        }
+        if (lastDisconnect==null)
+        {
+            return getUserRelevantMessages(userId, 20);
+        }
+        String query="SELECT m.message_id, u1.username AS sender, u2.username AS receiver, " +
+                      "m.message_text, m.is_private, m.sent_at " +
+                      "FROM messages m " +
+                      "JOIN users u1 ON m.sender_id = u1.user_id " +
+                      "LEFT JOIN users u2 ON m.receiver_id = u2.user_id " +
+                      "WHERE m.sent_at > ? AND " +
+                      "(m.sender_id = ? OR m.receiver_id = ? OR m.is_private = FALSE) " +
+                      "ORDER BY m.sent_at ASC LIMIT 100";
+        try(PreparedStatement prst=connection.prepareStatement(query))
+        {
+            prst.setTimestamp(1, lastDisconnect);
+            prst.setInt(2, userId);
+            prst.setInt(3, userId);
+            ResultSet rs=prst.executeQuery();
+            while(rs.next())
+            {
+                ChatHistoryMessage msg=new ChatHistoryMessage(
+                    rs.getInt("message_id"),
+                     rs.getString("sender"),
+                    rs.getString("receiver"),
+                    rs.getString("message_text"),
+                    rs.getBoolean("is_private"),
+                    rs.getTimestamp("sent_at")
+                );
+                messages.add(msg);
+            }
+        }
+        return messages;
+    }
+    //checking if this is first login
+    public boolean isFirstLogin(int userId) throws SQLException {
+        String query = "SELECT COUNT(*) as session_count FROM active_sessions WHERE user_id = ?";
+        try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+            pstmt.setInt(1, userId);
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                return rs.getInt("session_count") <= 1; // 1 because current session already created
+            }
+        }
+        return true;
+    }
+     public List<ChatHistoryMessage> getPrivateMessages(int userId1, int userId2, int limit) throws SQLException {
+        List<ChatHistoryMessage> messages = new ArrayList<>();
+        String query = "SELECT m.message_id, u1.username AS sender, u2.username AS receiver, " +
+                      "m.message_text, m.is_private, m.sent_at " +
+                      "FROM messages m " +
+                      "JOIN users u1 ON m.sender_id = u1.user_id " +
+                      "LEFT JOIN users u2 ON m.receiver_id = u2.user_id " +
+                      "WHERE (m.sender_id = ? AND m.receiver_id = ?) " +
+                      "OR (m.sender_id = ? AND m.receiver_id = ?) " +
+                      "ORDER BY m.sent_at DESC LIMIT ?";
+        
+        try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+            pstmt.setInt(1, userId1);
+            pstmt.setInt(2, userId2);
+            pstmt.setInt(3, userId2);
+            pstmt.setInt(4, userId1);
+            pstmt.setInt(5, limit);
+            ResultSet rs = pstmt.executeQuery();
+            
+            while (rs.next()) {
+                ChatHistoryMessage msg = new ChatHistoryMessage(
+                    rs.getInt("message_id"),
+                    rs.getString("sender"),
+                    rs.getString("receiver"),
+                    rs.getString("message_text"),
+                    rs.getBoolean("is_private"),
+                    rs.getTimestamp("sent_at")
+                );
+                messages.add(msg);
+            }
+        }
+        
+        java.util.Collections.reverse(messages);
+        return messages;
+    }
+    public int createSession(int userId) throws SQLException {
+        String query = "INSERT INTO active_sessions (user_id) VALUES (?) RETURNING session_id";
+        try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+            pstmt.setInt(1, userId);
+            ResultSet rs = pstmt.executeQuery();
+            
+            if (rs.next()) {
+                return rs.getInt("session_id");
+            }
+        }
+        throw new SQLException("Failed to create session");
+    }
+    public void endSession(int sessionId) throws SQLException {
+        String query = "UPDATE active_sessions SET disconnected_at = CURRENT_TIMESTAMP, " +
+                      "is_active = FALSE WHERE session_id = ?";
+        try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+            pstmt.setInt(1, sessionId);
+            pstmt.executeUpdate();
+        }
+    }
+    public String getUsername(int userId) throws SQLException {
+        String query = "SELECT username FROM users WHERE user_id = ?";
+        try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+            pstmt.setInt(1, userId);
+            ResultSet rs = pstmt.executeQuery();
+            
+            if (rs.next()) {
+                return rs.getString("username");
+            }
+        }
+        return null;
+    }
+    public void close() {
+        try {
+            if (connection != null && !connection.isClosed()) {
+                connection.close();
+                System.out.println("Database connection closed");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
     public static class ChatHistoryMessage
     {
         private int messageId;
@@ -163,7 +308,14 @@ public class DatabaseManager
             this.isPrivate = isPrivate;
             this.sentAt = sentAt;
         }
-        public void formatMessage(){
+        public String formatMessage(){
+            SimpleDateFormat sdf= new SimpleDateFormat("HH:mm:ss");
+            String time=sdf.format(sentAt);
+            if (isPrivate && receiver != null) {
+                return time + " [Private] " + sender + " -> " + receiver + ": " + messageText;
+            } else {
+                return time + " " + sender + ": " + messageText;
+            }
 
         }
         public int getMessageId() {

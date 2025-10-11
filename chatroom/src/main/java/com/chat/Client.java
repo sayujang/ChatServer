@@ -110,12 +110,8 @@ public class Client {
         if (!client.start()) return;
         
         System.out.println("\nHello! Welcome to the chatroom.");
-        System.out.println("Instructions:");
-        System.out.println("1. Simply type the message to send broadcast to all active clients");
-        System.out.println("2. Type '@username<space>yourmessage' without quotes to send message to desired client");
-        System.out.println("3. Type 'WHOISIN' without quotes to see list of active clients");
-        System.out.println("4. Type 'LOGOUT' without quotes to logoff from server");
-        System.out.println("\nYou will receive recent chat history from the server...\n");
+        System.out.println("TO VIEW INSTRUCTIONS TYPE >VIEWINSTRUCTION");
+        
         
         while (true) {
             System.out.print(">");
@@ -124,9 +120,23 @@ public class Client {
             if (msg.equalsIgnoreCase("LOGOUT")) {
                 client.sendMessage(new ChatMessage(ChatMessage.LOGOUT, ""));
                 break;
-            } else if (msg.equalsIgnoreCase("WHOISIN")) {
-                if (!client.sendMessage(new ChatMessage(ChatMessage.WHOISIN, ""))) break;
-            } else {
+            } else if (msg.equalsIgnoreCase("WHOISHERE")) {
+                if (!client.sendMessage(new ChatMessage(ChatMessage.WHOISHERE, ""))) break;
+            } else if (msg.equalsIgnoreCase("MYHISTORY")) {
+                if (!client.sendMessage(new ChatMessage(ChatMessage.MYHISTORY, ""))) break;
+            }
+            else if (msg.equalsIgnoreCase("VIEWINSTRUCTION"))
+            {
+                System.out.println("Instructions:");
+                System.out.println("1. Simply type the message to send broadcast to all active clients");
+                System.out.println("2. Type @username<space>yourmessage to send message to desired client");
+                System.out.println("Special Messages:");
+                System.out.println("a) Type WHOISHERE to see list of active clients");
+                System.out.println("b) Type MYHISTORY to see your last 50 messages ");
+                System.out.println("c) Type LOGOUT to logoff from server");
+                System.out.println("**NOTE**: All special messages are case-insensitive");
+            }
+            else {
                 if (!client.sendMessage(new ChatMessage(ChatMessage.MESSAGE, msg))) break;
             }
         }
