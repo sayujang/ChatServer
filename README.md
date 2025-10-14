@@ -22,7 +22,7 @@ A multi-client chat application built with Java Sockets and PostgreSQL that pres
 ```bash
 # Create database
 psql -U postgres
-CREATE DATABASE chat_app;
+CREATE DATABASE chat;
 \c chat
 ```
 
@@ -49,7 +49,6 @@ private static final String DB_PASSWORD = "your_password";
 ### 4. Compile and Run
 ```bash
 # Start server
-java Server
 mvn clean compile exec:java -Dexec.mainClass="com.chat.Server"
 # Start client (in new terminal)
 mvn clean compile exec:java -Dexec.mainClass="com.chat.Client"
@@ -123,7 +122,7 @@ sudo systemctl start postgresql
 
 **"Database does not exist"**
 ```bash
-createdb chat_app
+createdb chat
 ```
 
 ##  Useful Queries
