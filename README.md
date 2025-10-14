@@ -23,9 +23,7 @@ A multi-client chat application built with Java Sockets and PostgreSQL that pres
 # Create database
 psql -U postgres
 CREATE DATABASE chat_app;
-\c chat_app
-
-# Run the schema (copy from chat_db_schema.sql)
+\c chat
 ```
 
 ### 2. Configure Database Connection
