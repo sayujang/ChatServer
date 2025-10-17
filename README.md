@@ -4,7 +4,7 @@ A multi-client chat application built with Java Sockets and PostgreSQL that pres
 
 ## Features
 
-- **Real-time messaging** - Broadcast and private messaging (@username)
+- **Real-time messaging and Multi-threading** - Broadcast and private messaging (@username)
 - **Persistent chat history** - All messages stored in PostgreSQL
 - **Smart reconnection** - Returning users see messages they missed
 - **User management** - Automatic user registration and session tracking
